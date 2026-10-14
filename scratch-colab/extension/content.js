@@ -92,6 +92,7 @@
     if (m.type === "reply") { const cb = waiting.get(m.id); if (cb) { waiting.delete(m.id); cb(m); } return; }
     if (m.type === "local-changes") return void chain(() => sendLocal(m.changes));
     if (m.type === "editing") { editingName = m.name; return void heartbeat(); }
+    if (m.type === "bot-active") { const first = !botActiveHere(); botLast = now(); if (first) heartbeat(); return; }
     if (m.type === "error") return void addFeed(null, m.message, true);
     if (m.type === "editor-ready") return void sendState();
   });
@@ -105,6 +106,16 @@
   let error = "";
   let feed = [];
   let editingName = "";
+
+  // Scratchity [BOT]: shows in the colab while invited, or for a while after it adds blocks here.
+  const BOT_NAME = "Scratchity";
+  const BOT_LABEL = "Scratchity [BOT]";
+  const BOT_COLOR = "#855cd6";
+  const BOT_STAY = 10 * 60 * 1000;
+  let botInvited = false;
+  let botLast = 0;
+  let botShown = false;
+  const botActiveHere = () => botInvited || now() - botLast < BOT_STAY;
   let pendingScripts = [];
   let beatTimer = null;
   let connected = false;
@@ -126,8 +137,9 @@
     const p = mirror.people || {};
     return Object.entries(p)
       .filter(([, v]) => v && now() - (v.at || 0) < 75000)
-      .map(([cid, v]) => ({ name: v.name, color: v.color, editing: v.editing || "", me: room && cid === room.cid }))
-      .sort((a, b) => (b.me ? 1 : 0) - (a.me ? 1 : 0));
+      .map(([cid, v]) => ({ name: v.name, color: v.color, editing: v.editing || "", me: room && cid === room.cid, bot: !!v.bot, via: v.via || "" }))
+      .filter((p, i, all) => !p.bot || all.findIndex((q) => q.bot) === i) // one Scratchity, however many invited it
+      .sort((a, b) => (b.me ? 2 : b.bot ? 1 : 0) - (a.me ? 2 : a.bot ? 1 : 0));
   }
   const nameOf = (cid) => (mirror.people && mirror.people[cid] && mirror.people[cid].name) || "A teammate";
 
@@ -137,7 +149,7 @@
     const prev = prevRoom();
     return {
       url: location.href, editor, codeArea, busy, error, feed,
-      room: room ? { code: room.code, host: room.host, connected, people: people(), title: (mirror.meta && mirror.meta.title) || "" } : null,
+      room: room ? { code: room.code, host: room.host, connected, people: people(), title: (mirror.meta && mirror.meta.title) || "", botInvited } : null,
       rejoin: !room && prev ? prev.code : "",
       settings: { db: settings.db, name: settings.name, defaultDb: DEFAULT_DB },
     };
@@ -224,6 +236,8 @@
     sessionStorage.removeItem(PREV);
     await callPage("stop").catch(() => {});
     await fb(`rooms/${r.code}/live/people/${r.cid}`, "DELETE").catch(() => {});
+    if (botShown) await fb(`rooms/${r.code}/live/people/bot_${r.cid}`, "DELETE").catch(() => {});
+    botInvited = false; botLast = 0; botShown = false;
     feed = [];
   }
 
@@ -266,6 +280,14 @@
     if (!room) return;
     try {
       await fb(`rooms/${room.code}/live/people/${room.cid}`, "PATCH", { name: await myName(), color: room.color, at: now(), editing: editingName });
+      const botPath = `rooms/${room.code}/live/people/bot_${room.cid}`;
+      if (botActiveHere()) {
+        await fb(botPath, "PUT", { name: BOT_NAME, bot: true, color: BOT_COLOR, at: now(), editing: editingName, via: await myName() });
+        botShown = true;
+      } else if (botShown) {
+        await fb(botPath, "DELETE");
+        botShown = false;
+      }
     } catch (_) { /* next beat will retry */ }
     sendState();
   }
@@ -333,13 +355,20 @@
     const flat = flatten();
     const changes = { scripts: [], vars: [], sprites: [] };
     const told = new Map(); // who -> Set of descriptions
-    const tell = (by, text) => { if (!told.has(by)) told.set(by, new Set()); told.get(by).add(text); };
+    let tellBot = false;
+    const tell = (by, text) => {
+      const who = tellBot ? `${BOT_LABEL}` : nameOf(by);
+      const extra = tellBot ? ` (for ${nameOf(by)})` : "";
+      if (!told.has(who)) told.set(who, new Set());
+      told.get(who).add(text + extra);
+    };
 
     for (const [key, v] of Object.entries(flat)) {
       const str = JSON.stringify(v);
       if (seen[key] === str) continue;
       seen[key] = str;
       if (!v || v.by === room.cid) continue;
+      tellBot = !!v.bot;
       const [kind, tk, rawId] = key.split("/");
       if (kind === "s") {
         changes.scripts.push({ tk, id: dec(rawId), b: v.b || null });
@@ -364,7 +393,7 @@
 
     const r = await callPage("apply", { changes }, 120000);
     if (r.pending) pendingScripts = (r.pending.scripts || []);
-    for (const [by, set] of told) for (const text of set) addFeed(nameOf(by), text);
+    for (const [who, set] of told) for (const text of set) addFeed(who, text);
   }
 
   // ---------- sending this tab's changes ----------
@@ -376,23 +405,30 @@
     const patch = {};
     const k = (s) => encodeURIComponent(String(s)).replace(/\./g, "%2E");
     let bigSprite = "";
+    const bot = ch.bot ? { bot: true } : {};
+    if (ch.bot) { const first = !botActiveHere(); botLast = now(); if (first) heartbeat(); }
 
     for (const s of ch.sprites || []) {
-      if (s.deleted) { patch[`sprites/${s.tk}`] = { del: true, by: cid, who: name, at }; continue; }
+      if (s.deleted) { patch[`sprites/${s.tk}`] = { del: true, by: cid, who: name, at, ...bot }; continue; }
       if (!s.data) { addFeed(null, `Couldn't send ${s.name}'s costumes: ${s.error || "unknown problem"}`, true); continue; }
       const d = toB64(s.data);
       if (d.length > 9.5 * 1024 * 1024) { bigSprite = s.name; continue; }
       const v = randomId(6);
       await fb(`rooms/${code}/spritefiles/${encodeURIComponent(s.tk)}`, "PUT", { v, d });
-      patch[`sprites/${s.tk}`] = { name: s.name, sig: s.sig, v, isNew: !!s.isNew, by: cid, who: name, at };
+      patch[`sprites/${s.tk}`] = { name: s.name, sig: s.sig, v, isNew: !!s.isNew, by: cid, who: name, at, ...bot };
     }
     for (const v of ch.vars || []) {
-      patch[`vars/${v.tk}/${k(v.id)}`] = v.v ? { n: v.v.n, t: v.v.t, c: v.v.c, by: cid, at } : { del: true, n: "", by: cid, at };
+      patch[`vars/${v.tk}/${k(v.id)}`] = v.v ? { n: v.v.n, t: v.v.t, c: v.v.c, by: cid, at, ...bot } : { del: true, n: "", by: cid, at, ...bot };
     }
     for (const s of ch.scripts || []) {
-      patch[`scripts/${s.tk}/${k(s.id)}`] = { b: s.b, by: cid, at };
+      patch[`scripts/${s.tk}/${k(s.id)}`] = { b: s.b, by: cid, at, ...bot };
     }
     if (Object.keys(patch).length) await fb(`rooms/${code}/live`, "PATCH", patch);
+    if (ch.bot && Object.keys(patch).length) {
+      const n = (ch.scripts || []).filter((x) => x.b).length;
+      const places = [...new Set((ch.scripts || []).map((x) => spriteLabel(x.tk)))];
+      addFeed(BOT_LABEL, n ? `added ${n} script${n === 1 ? "" : "s"}${places.length ? " to " + places.join(", ") : ""} for you. Everyone can see them.` : "changed the project for you. Everyone can see it.");
+    }
     if (bigSprite) addFeed(null, `${bigSprite} is too big to send live. Press Send my version to everyone instead.`, true);
     if ((ch.notes || []).includes("backdrops")) addFeed(null, "Backdrop changes don't sync live. Press Send my version to everyone when you're done.");
   }
@@ -408,6 +444,8 @@
         else if (msg.action === "leave") await leave();
         else if (msg.action === "resync") await resync();
         else if (msg.action === "clear-feed") feed = [];
+        else if (msg.action === "invite-bot") { botInvited = true; await heartbeat(); addFeed(null, `You invited ${BOT_LABEL}. Ask Scratchity for something and it shows up for everyone.`); }
+        else if (msg.action === "remove-bot") { botInvited = false; botLast = 0; await heartbeat(); addFeed(null, `${BOT_LABEL} left.`); }
         error = "";
       } catch (err) {
         error = String(err && err.message || err);
@@ -424,7 +462,10 @@
 
   window.addEventListener("pagehide", () => {
     if (!room) return;
-    try { fetch(`${settings.db}/rooms/${room.code}/live/people/${room.cid}.json`, { method: "DELETE", keepalive: true }); } catch (_) { /* best effort */ }
+    try {
+      fetch(`${settings.db}/rooms/${room.code}/live/people/${room.cid}.json`, { method: "DELETE", keepalive: true });
+      if (botShown) fetch(`${settings.db}/rooms/${room.code}/live/people/bot_${room.cid}.json`, { method: "DELETE", keepalive: true });
+    } catch (_) { /* best effort */ }
   });
 
   loadSettings().then(sendState);

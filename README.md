@@ -42,6 +42,19 @@ If two people edit the same script at the same moment, the last change wins.
 The project is never shared on Scratch. When you're done, anyone can use File → Save to your
 computer, or save it to their own account.
 
+## Scratchity [BOT]
+
+Scratchity can join a colab as a bot. With both extensions installed, open the colab and press
+**Invite** on the Scratchity card, then ask Scratchity for something in its own side panel. The
+blocks it adds go into your project and show up for everyone as **Scratchity [BOT]**, with your
+name next to it. Scratchity also appears in the people list while it's invited, and for 10
+minutes after it adds anything, even if nobody invited it.
+
+Scratch Colab spots Scratchity's changes by its `scratchityInsert` function, so Scratchity needs
+no changes. A future Scratchity can also say so directly by posting
+`{ source: "scratchity", type: "bot-start" }` and `{ source: "scratchity", type: "bot-end" }`
+with `window.postMessage` around adding blocks.
+
 ## How it works
 
 - `page.js` runs inside the Scratch page. It finds the editor, watches for changes script by

@@ -115,8 +115,52 @@
   let live = false;       // in a room and ready
   let applying = 0;       // while > 0, our own edits are teammates' changes, not ours
   let scanTimer = null;
+
+  // ---------- Scratchity [BOT] ----------
+  // Scratchity adds blocks with a function named scratchityInsert, through the same code area.
+  // While that function is running (and a moment after, while the editor catches up), changes
+  // are Scratchity's, so teammates see them as Scratchity [BOT].
+  let botDepth = 0, botUntil = 0, botPending = false;
+  const botBusy = () => botDepth > 0 || Date.now() < botUntil;
+  const calledByScratchity = () => /scratchityInsert/.test(String(new Error().stack || ""));
+  let botPosted = 0;
+  function botStart() {
+    botDepth++; botPending = true;
+    if (Date.now() - botPosted > 1000) { botPosted = Date.now(); post("bot-active", {}); }
+  }
+  function botEnd() { botDepth = Math.max(0, botDepth - 1); botUntil = Date.now() + 2500; }
+  function wrapForBot(obj, name) {
+    const orig = obj && obj[name];
+    if (typeof orig !== "function" || orig.__colabBot) return;
+    const wrapped = function (...args) {
+      const bot = calledByScratchity();
+      if (bot) botStart();
+      let out;
+      try { out = orig.apply(this, args); } catch (err) { if (bot) botEnd(); throw err; }
+      if (bot) { if (out && typeof out.then === "function") out.then(botEnd, botEnd); else botEnd(); }
+      return out;
+    };
+    wrapped.__colabBot = true;
+    try { obj[name] = wrapped; } catch (_) { /* locked object: the other hooks still catch it */ }
+  }
+  function hookBot(e) {
+    if (e.SB && e.SB.Xml) wrapForBot(e.SB.Xml, "domToWorkspace");
+    for (const fn of ["addSprite", "shareBlocksToTarget"]) wrapForBot(e.vm, fn);
+    // Scratchity turns its blocks into XML with the VM's own blockToXML just before adding them.
+    const stage = e.vm.runtime.getTargetForStage && e.vm.runtime.getTargetForStage();
+    if (stage && stage.blocks) wrapForBot(Object.getPrototypeOf(stage.blocks), "blockToXML");
+  }
+  // A future Scratchity can also say so directly.
+  window.addEventListener("message", (ev) => {
+    const m = ev.data;
+    if (ev.source !== window || !m || m.source !== "scratchity") return;
+    if (m.type === "bot-start") botStart();
+    else if (m.type === "bot-end") botEnd();
+  });
+
   const queueScan = (ms = 450) => {
     if (!live) return;
+    if (botBusy()) botPending = true;
     clearTimeout(scanTimer);
     scanTimer = setTimeout(scan, ms);
   };
@@ -124,9 +168,11 @@
   async function scan() {
     const e = editor();
     if (!live || !e) return;
-    if (applying) { queueScan(300); return; }
+    if (applying || botDepth > 0) { queueScan(300); return; }
     const vm = e.vm;
-    const changes = { scripts: [], vars: [], sprites: [], notes: [] };
+    const bot = botPending || botBusy();
+    botPending = false;
+    const changes = { scripts: [], vars: [], sprites: [], notes: [], bot };
     const seenTks = new Set();
 
     for (const t of originals(vm)) {
@@ -388,6 +434,7 @@
       e.vm.on("targetsUpdate", () => queueScan());
       post("editor-ready", {});
     }
+    if (e) hookBot(e);
     if (live && !applying) queueScan(0);
   }, 2000);
 

@@ -18,6 +18,8 @@
     if (s < 3600) return Math.round(s / 60) + "m";
     return Math.round(s / 3600) + "h";
   };
+  // A little robot face for Scratchity's dot.
+  const BOT_FACE = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2" y="4" width="12" height="9" rx="2.5" fill="#fff"/><rect x="7.25" y="1" width="1.5" height="3" fill="#fff"/><circle cx="5.5" cy="8.5" r="1.4" fill="#855cd6"/><circle cx="10.5" cy="8.5" r="1.4" fill="#855cd6"/></svg>';
   const isScratchProject = (url) => /^https:\/\/scratch\.mit\.edu\/projects\//.test(url || "");
 
   function setBusy(text) {
@@ -148,11 +150,23 @@
         <ul class="people">
           ${people.map((p) => `
             <li>
-              <span class="dot" style="background:${esc(p.color || "#4c97ff")}">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>
-              <span>${esc(p.name || "Someone")}${p.me ? " (you)" : ""}</span>
-              <span class="where">${p.editing ? "in " + esc(p.editing) : ""}</span>
+              <span class="dot${p.bot ? " bot" : ""}" style="background:${esc(p.color || "#4c97ff")}">${p.bot ? BOT_FACE : esc((p.name || "?").slice(0, 1).toUpperCase())}</span>
+              <span>${esc(p.name || "Someone")}${p.bot ? ` <span class="bot-tag">BOT</span>` : ""}${p.me ? " (you)" : ""}</span>
+              <span class="where">${p.bot ? (p.via ? "with " + esc(p.via) : "") : p.editing ? "in " + esc(p.editing) : ""}</span>
             </li>`).join("")}
         </ul>
+      </section>
+      <section class="card bot-card">
+        <div class="row" style="justify-content:space-between">
+          <h2>Scratchity <span class="bot-tag">BOT</span></h2>
+          ${r.botInvited
+            ? `<button class="act" id="bot-remove">Remove</button>`
+            : `<button class="act event" id="bot-invite">Invite</button>`}
+        </div>
+        <p>${r.botInvited
+          ? "Scratchity is in the colab. Open Scratchity's side panel and ask for something: the blocks it adds show up for everyone as Scratchity [BOT]."
+          : "Bring Scratchity in as a teammate. Anything Scratchity adds to this project shows up for everyone as Scratchity [BOT], even if you don't invite it first."}</p>
+        <a class="act ghost" href="https://scratchity.pages.dev" target="_blank" rel="noopener">Don't have Scratchity?</a>
       </section>
       <section class="card">
         <div class="row" style="justify-content:space-between">
@@ -182,6 +196,8 @@
       if (confirm("Leave this colab? Your project stays in this tab, but stops syncing.")) act("leave");
     };
     if ($("clear")) $("clear").onclick = () => act("clear-feed");
+    if ($("bot-invite")) $("bot-invite").onclick = () => act("invite-bot");
+    if ($("bot-remove")) $("bot-remove").onclick = () => act("remove-bot");
   }
 
   const howItWorks = () => `

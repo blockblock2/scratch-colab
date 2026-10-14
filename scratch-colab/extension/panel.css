@@ -123,3 +123,12 @@ label { display: block; font-weight: 500; font-size: 0.85rem; margin: 6px 0 4px;
 .settings h2 { margin-bottom: 4px; }
 .settings .row { margin-top: 10px; }
 .small-print { font-size: 0.78rem; text-align: center; opacity: 0.8; margin-top: auto; padding-top: 8px; }
+
+/* Scratchity [BOT] */
+.bot-tag {
+  display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+  background: #855cd6; color: #fff; border-radius: 4px; padding: 1px 5px; vertical-align: 2px; margin-left: 2px;
+}
+.bot-card { border-left: 6px solid #855cd6; }
+.bot-card a.act { display: inline-block; text-decoration: none; padding-left: 0; font-size: 0.85rem; color: #855cd6; }
+.dot.bot { border-radius: 6px; }
