@@ -1,0 +1,125 @@
+/* Same look as Scratchity: Scratch's workspace paper, dots, and block colours. */
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap");
+
+:root {
+  --paper: #f9f9fb;
+  --dots: #dde1ea;
+  --ink: #575e75;
+  --ink-strong: #3b4155;
+  --line: #d0d4dd;
+  --events: #ffbf00;
+  --events-edge: #cc9900;
+  --events-text: #4a3500;
+  --motion: #4c97ff;
+  --motion-edge: #3373cc;
+  --operators: #59c059;
+  --danger: #e5484d;
+  --white: #ffffff;
+  --radius-input: 14px;
+  font-family: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dots) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+button, textarea, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--motion); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+#app { display: flex; flex-direction: column; min-height: 100%; padding: 0 12px 16px; }
+
+/* Header */
+.top { display: flex; align-items: center; gap: 12px; padding: 16px 0 12px; }
+.brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--ink-strong); line-height: 1.1; }
+.brand .tag { margin: 2px 0 0; font-size: 0.8rem; }
+.icon-btn {
+  border: 1px solid var(--line); background: var(--white); border-radius: 50%;
+  width: 36px; height: 36px; display: grid; place-items: center; cursor: pointer; color: var(--ink);
+}
+.icon-btn:hover { border-color: var(--motion); color: var(--motion); }
+
+/* Cards, shaped a little like Scratch blocks */
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+}
+.card h2 { margin: 0 0 6px; font-size: 1rem; color: var(--ink-strong); }
+.card p { margin: 0 0 10px; font-size: 0.9rem; line-height: 1.4; }
+.card.hat { border-top: 6px solid var(--events); border-top-left-radius: 20px; border-top-right-radius: 20px; }
+.card.motion { border-left: 6px solid var(--motion); }
+
+.hint { font-size: 0.8rem !important; color: var(--ink); opacity: 0.85; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Buttons (same as Scratchity's reply actions) */
+.act {
+  border: 1px solid var(--line); background: var(--white); border-radius: var(--radius-input);
+  padding: 8px 14px; cursor: pointer; font-weight: 500; color: var(--ink-strong);
+}
+.act:hover { border-color: var(--motion); }
+.act:disabled { opacity: 0.55; cursor: default; }
+.act.primary { background: var(--motion); border-color: var(--motion-edge); color: var(--white); }
+.act.primary:hover { background: var(--motion-edge); }
+.act.event { background: var(--events); border-color: var(--events-edge); color: var(--events-text); }
+.act.event:hover { background: #f2b400; }
+.act.ghost { background: transparent; border-color: transparent; }
+.act.danger { color: var(--danger); }
+.act.wide { width: 100%; }
+
+input[type="text"], input[type="url"] {
+  width: 100%; border: 1px solid var(--line); border-radius: var(--radius-input);
+  padding: 9px 12px; background: var(--white); margin-bottom: 6px;
+}
+input:focus { border-color: var(--motion); outline: none; box-shadow: 0 0 0 3px rgba(76, 151, 255, 0.25); }
+label { display: block; font-weight: 500; font-size: 0.85rem; margin: 6px 0 4px; color: var(--ink-strong); }
+.code-input { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.08em; text-transform: lowercase; }
+
+/* Room code */
+.code-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--paper); border: 2px dashed var(--line); border-radius: var(--radius-input);
+  padding: 10px 12px; margin: 6px 0 10px;
+}
+.code-box code { font-size: 1.25rem; font-weight: 700; color: var(--ink-strong); letter-spacing: 0.1em; font-family: ui-monospace, "SF Mono", Menlo, monospace; word-break: break-all; }
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 500; }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--operators); }
+.live.off::before { background: var(--danger); }
+
+/* People */
+.people { list-style: none; margin: 0; padding: 0; }
+.people li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.9rem; }
+.dot { width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 0.75rem; font-weight: 700; display: grid; place-items: center; flex: none; }
+.people .where { margin-left: auto; font-size: 0.78rem; opacity: 0.85; text-align: right; }
+
+/* Activity */
+.feed { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow: auto; }
+.feed li { font-size: 0.85rem; padding: 6px 0; border-top: 1px solid #eef0f4; line-height: 1.35; }
+.feed li:first-child { border-top: 0; }
+.feed li.bad { color: var(--danger); }
+.feed time { float: right; font-size: 0.72rem; opacity: 0.7; margin-left: 6px; }
+.feed b { color: var(--ink-strong); }
+.empty { font-size: 0.85rem; opacity: 0.8; margin: 0; }
+
+.banner {
+  background: #fff1f1; border: 1px solid #f3c2c4; color: #9b1c20; border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 12px; font-size: 0.88rem; line-height: 1.4;
+}
+.banner.info { background: #eef5ff; border-color: #c4dbff; color: #1f4d99; }
+.busy { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; margin-bottom: 12px; color: var(--ink-strong); }
+.spinner { width: 16px; height: 16px; border: 3px solid var(--dots); border-top-color: var(--motion); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.settings h2 { margin-bottom: 4px; }
+.settings .row { margin-top: 10px; }
+.small-print { font-size: 0.78rem; text-align: center; opacity: 0.8; margin-top: auto; padding-top: 8px; }

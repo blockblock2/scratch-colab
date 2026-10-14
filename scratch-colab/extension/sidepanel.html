@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scratch Colab</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body class="is-panel">
+  <div id="app">
+    <header class="top">
+      <div class="brand">
+        <img src="icon48.png" alt="" width="28" height="28">
+        <div>
+          <h1>Scratch Colab</h1>
+          <p class="tag">Build one project together</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="gear" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+      </button>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+    <div id="busy" class="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-text"></span></div>
+
+    <main id="view"></main>
+
+    <section id="settings" class="card settings" hidden>
+      <h2>Settings</h2>
+      <label for="set-name">Your name in colabs</label>
+      <input id="set-name" type="text" maxlength="40" placeholder="Your Scratch username">
+      <p class="hint">Leave empty to use your Scratch username.</p>
+      <label for="set-db">Firebase database address</label>
+      <input id="set-db" type="url" spellcheck="false">
+      <p class="hint">Everyone in a colab needs the same address.</p>
+      <div class="row">
+        <button class="act primary" id="set-save">Save</button>
+        <button class="act" id="set-reset">Use default</button>
+        <button class="act ghost" id="set-close">Close</button>
+      </div>
+    </section>
+  </div>
+  <script src="panel.js"></script>
+</body>
+</html>
