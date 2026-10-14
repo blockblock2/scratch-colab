@@ -153,6 +153,7 @@
   // ---------- project file in Firebase ----------
   async function uploadProject(code, rev) {
     const { data, title } = await callPage("save");
+    if (!data || !data.byteLength) throw new Error("Couldn't read the project from Scratch. Reload the page and try again.");
     const b64 = toB64(data);
     const chunks = Math.max(1, Math.ceil(b64.length / CHUNK));
     for (let i = 0; i < chunks; i++) {
@@ -171,6 +172,7 @@
       if (typeof part !== "string") throw new Error("The shared project is missing. Ask the person who started the colab to press Send my version to everyone.");
       b64 += part;
     }
+    if (!b64) throw new Error("The shared project is empty. Ask the person who started the colab to press Send my version to everyone.");
     return fromB64(b64);
   }
 

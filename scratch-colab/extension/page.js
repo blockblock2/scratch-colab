@@ -167,7 +167,8 @@
       if (s.deleted) continue;
       const t = targetByKey(vm, s.tk);
       try {
-        s.data = await vm.exportSprite(t.id, "arraybuffer");
+        const out = await vm.exportSprite(t.id, "arraybuffer");
+        s.data = out instanceof ArrayBuffer ? out : await new Response(out).arrayBuffer();
       } catch (err) {
         s.error = String(err && err.message || err);
       }
@@ -345,13 +346,17 @@
   async function saveProject() {
     const e = editor();
     if (!e) throw new Error("Open the project in the Scratch editor first (click See inside).");
-    const data = await e.vm.saveProjectSb3("arraybuffer");
+    // Scratch's saveProjectSb3 always gives back a Blob, whatever type is asked for.
+    const out = await e.vm.saveProjectSb3("arraybuffer");
+    const data = out instanceof ArrayBuffer ? out : await new Response(out).arrayBuffer();
+    if (!data || !data.byteLength) throw new Error("Scratch gave back an empty project. Reload the page and try again.");
     const title = (document.querySelector('[class*="project-title-input"]') || {}).value || "";
     return { data, title };
   }
   async function loadProject(data) {
     const e = editor();
     if (!e) throw new Error("Open a project in the Scratch editor first.");
+    if (!data || !data.byteLength) throw new Error("The shared project came through empty. Ask the person who started the colab to press Send my version to everyone.");
     applying++;
     try {
       await e.vm.loadProject(data);
