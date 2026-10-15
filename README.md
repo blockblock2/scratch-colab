@@ -50,6 +50,9 @@ blocks it adds go into your project and show up for everyone as **Scratchity [BO
 name next to it. Scratchity also appears in the people list while it's invited, and for 10
 minutes after it adds anything, even if nobody invited it.
 
+While a colab is live, Scratch Colab marks the page with `<html data-scratch-colab="live">`.
+Scratchity uses that to know you're in a colab: there it needs to be unlocked with BananaCoins.
+
 Scratch Colab spots Scratchity's changes by its `scratchityInsert` function, so Scratchity needs
 no changes. A future Scratchity can also say so directly by posting
 `{ source: "scratchity", type: "bot-start" }` and `{ source: "scratchity", type: "bot-end" }`
