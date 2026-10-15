@@ -113,6 +113,12 @@
 
   // ---------- sending local changes ----------
   let live = false;       // in a room and ready
+  // Other extensions (Scratchity) can see whether a colab is going: <html data-scratch-colab="live">.
+  const setLive = (on) => {
+    live = on;
+    if (on) document.documentElement.dataset.scratchColab = "live";
+    else delete document.documentElement.dataset.scratchColab;
+  };
   let applying = 0;       // while > 0, our own edits are teammates' changes, not ours
   let scanTimer = null;
 
@@ -451,15 +457,15 @@
         const r = await saveProject();
         reply({ ok: true, data: r.data, title: r.title });
       } else if (m.type === "load") {
-        live = false;
+        setLive(false);
         await loadProject(m.data);
         reply({ ok: true });
       } else if (m.type === "start") {
         baselineAll();
-        live = true;
+        setLive(true);
         reply({ ok: true });
       } else if (m.type === "stop") {
-        live = false;
+        setLive(false);
         reply({ ok: true });
       } else if (m.type === "apply") {
         const r = await applyRemote(m.changes);
